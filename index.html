@@ -332,7 +332,7 @@
     }
     #icono { text-align: center; font-family: var(--emoji); font-size: 1.4rem; padding: 6px 10px; height: 52px; }
     #nombre-juego, #url-juego, #autor, #enterprise-id { height: 52px; }
-    .pista { margin: 6px 0 0; font-size: .82rem; font-weight: 700; color: var(--muted); }
+    .pista { margin: 6px 0 0; font-size: .82rem; font-weight: 700; color: var(--muted); overflow-wrap: anywhere; }
     .emojis {
       display: flex;
       flex-wrap: wrap;
@@ -354,7 +354,7 @@
     .emojis button:hover { transform: translateY(-2px) rotate(-6deg); background: #fff4c7; }
     .emojis button[aria-pressed="true"] { background: var(--amarillo); box-shadow: 2px 2px 0 var(--ink); }
     .acciones-registro { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; }
-    .mensaje-form { margin: 0; font-weight: 800; font-size: .95rem; }
+    .mensaje-form { margin: 0; font-weight: 800; font-size: .95rem; overflow-wrap: anywhere; }
     .mensaje-form.error { color: var(--rojo); }
     .mensaje-form.ok { color: var(--verde); }
 
@@ -743,7 +743,9 @@
           <div>
             <label class="etiqueta" for="url-juego">URL</label>
             <input class="campo" id="url-juego" name="url" type="text" inputmode="url" required
-                   placeholder="https://usuario.github.io/kermese-juego-tiro/" autocomplete="off" spellcheck="false">
+                   placeholder="https://usuario.github.io/kermese-juego-tiro/" autocomplete="off" spellcheck="false"
+                   aria-describedby="pista-url">
+            <p class="pista" id="pista-url">Formato https://&lt;usuario&gt;.github.io/kermese-juego-&lt;palabra&gt;/ (GitHub Pages). La palabra va en minúsculas y números.</p>
           </div>
           <div>
             <label class="etiqueta" for="icono">Icono</label>
@@ -906,15 +908,30 @@
       try { return ['http:', 'https:'].includes(new URL(url).protocol) } catch { return false }
     }
 
-    function normalizarUrl(valor) {
+    // Cada juego vive en su repo kermese-juego-<palabra> de GitHub Pages y solo se registran URLs
+    // https://<usuario>.github.io/kermese-juego-<palabra>/. El nombre del repo es lo que el juego
+    // guarda en puntajes.juego (ver repoDe).
+    const FORMATO_URL = 'https://<usuario>.github.io/kermese-juego-<palabra>/'
+    const RE_HOST_PAGES = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.github\.io$/
+    const RE_REPO = /^kermese-juego-[a-z0-9]+$/
+
+    // Devuelve { url } normalizada (https y / final) o { error } con el mensaje para el usuario.
+    function revisarUrlJuego(valor) {
       let v = String(valor ?? '').trim()
-      if (!v) return null
+      if (!v) return { error: 'Escribe la URL de tu juego.' }
       if (!/^[a-z][a-z\d+.-]*:/i.test(v)) v = 'https://' + v
-      try {
-        const u = new URL(v)
-        if (!['http:', 'https:'].includes(u.protocol) || !u.hostname.includes('.') && u.hostname !== 'localhost') return null
-        return u.href
-      } catch { return null }
+      let u
+      try { u = new URL(v) } catch { return { error: `Esa no es una URL válida. Usa ${FORMATO_URL}` } }
+      if (u.protocol !== 'https:') return { error: 'La URL debe empezar con https:// (GitHub Pages siempre usa https).' }
+      if (!RE_HOST_PAGES.test(u.hostname) || u.port || u.username || u.password) {
+        return { error: `El juego debe estar publicado en GitHub Pages: ${FORMATO_URL}` }
+      }
+      const [, repo, ...resto] = u.pathname.split('/')
+      if (!RE_REPO.test(repo)) {
+        return { error: 'La ruta debe ser /kermese-juego-<palabra>/ (el nombre de tu repo), con <palabra> solo en minúsculas y números.' }
+      }
+      if (resto.join('') || u.search || u.hash) return { error: `Quita lo que va después de /${repo}/ en la URL.` }
+      return { url: `https://${u.hostname}/${repo}/` }
     }
 
     // Agrega ?jugador=<enterprise_id>&oficial=1 al final, respetando parámetros y #hash existentes.
@@ -1104,19 +1121,21 @@
       for (const c of [campoNombre, campoUrl, inputIcono, campoAutor, campoEid]) c.removeAttribute('aria-invalid')
 
       const nombre = campoNombre.value.trim().replace(/\s+/g, ' ')
-      const url = normalizarUrl(campoUrl.value)
+      const { url, error: errUrl } = revisarUrlJuego(campoUrl.value)
       const icono = primerGrafema(inputIcono.value) || '🎮'
       const autor = campoAutor.value.trim().replace(/\s+/g, ' ')
       const enterprise_id = campoEid.value.trim()
 
       const invalido = (campo, texto) => { campo.setAttribute('aria-invalid', 'true'); campo.focus(); mensaje(texto, 'error') }
       if (!nombre) return invalido(campoNombre, 'Ponle nombre a tu juego.')
-      if (!url) return invalido(campoUrl, 'Escribe una URL válida (https://…).')
+      if (errUrl) return invalido(campoUrl, errUrl)
       if (!autor) return invalido(campoAutor, 'Escribe el nombre del autor.')
       const errEid = errorEnterpriseId(enterprise_id)
       if (errEid) return invalido(campoEid, errEid)
-      const repetido = [...estado.apps.values()].find((a) => a.url === url)
-      if (repetido) return invalido(campoUrl, `Esa URL ya está registrada como “${repetido.nombre}”.`)
+      // puntajes.juego solo trae el nombre del repo: dos juegos con el mismo repo no se distinguirían.
+      const repo = repoDe(url)
+      const repetido = juegoPorRepo.get(repo)
+      if (repetido) return invalido(campoUrl, `El repo ${repo} ya está registrado como “${repetido.nombre}”. Cada juego necesita un nombre de repo distinto.`)
 
       const btn = $('#btn-registrar')
       btn.disabled = true
@@ -1142,11 +1161,8 @@
     })
 
     // ---------- juegos: liga con puntajes ----------
-    // Cada juego vive en su repo kermese-juego-<palabra> de GitHub Pages, así que su URL
-    // trae el nombre del repo (https://usuario.github.io/kermese-juego-xyz/). El juego guarda
-    // ese mismo nombre en puntajes.juego: la liga es por coincidencia exacta.
-    const RE_REPO = /^kermese-juego-[\w.-]+$/
-
+    // El juego guarda en puntajes.juego el nombre de su repo (kermese-juego-xyz), el mismo que
+    // trae su URL (https://usuario.github.io/kermese-juego-xyz/): la liga es por coincidencia exacta.
     function repoDe(url) {
       try { return new URL(url).pathname.split('/').find((s) => RE_REPO.test(s)) ?? null } catch { return null }
     }

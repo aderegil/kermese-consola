@@ -35,9 +35,16 @@ Ya existen. No las crees ni las modifiques (ni columnas, ni políticas RLS).
   Se usa en el registro de juegos (`apps.enterprise_id`) y en "Tu Enterprise ID" del jugador.
 - **Jugador**: es su Enterprise ID. Se guarda en localStorage (`kermese.jugador`) y se pasa a los
   juegos como `?jugador=<enterprise_id>`; los juegos lo escriben en `puntajes.jugador`.
+- **URL de un juego**: el registro solo acepta `https://<usuario>.github.io/kermese-juego-<palabra>/`,
+  con `<palabra>` en minúsculas y números; se guarda normalizada (https y `/` final), sin nada
+  después del repo. Una sola función valida: `revisarUrlJuego()`, que devuelve `{ url }` o `{ error }`.
+  No se puede registrar un repo que ya esté registrado, aunque sea de otro usuario.
 - **Liga puntaje ↔ juego**: coincidencia exacta entre `puntajes.juego` y el nombre del repo
   (`kermese-juego-xyz`) que aparece en la ruta de `apps.url` (ver `repoDe()`).
   Sin comparar por nombre del juego, por id ni ignorando acentos o mayúsculas.
+  Por eso el nombre del repo debe ser único entre todos los juegos.
+- **Jugadores** (`puntajes.jugador`): los totales y la marca "tú" del ranking comparan sin
+  acentos ni mayúsculas (`normalizar()`). Se deja así a propósito.
 
 ## Pruebas
 
