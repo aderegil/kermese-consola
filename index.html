@@ -1,0 +1,1448 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kermese · Consola de juegos</title>
+  <meta name="description" content="kermese-consola: registra juegos, juega y sube al ranking en tiempo real.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪅</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ink: #2b1638;
+      --muted: #6e5a73;
+      --bg: #fff3dc;
+      --paper: #fffbf2;
+      --rosa: #e4007c;
+      --naranja: #ff7a00;
+      --amarillo: #ffc531;
+      --verde: #1f9d55;
+      --turquesa: #00a3ad;
+      --morado: #7b3fa0;
+      --rojo: #e23b3b;
+      --cuerda: #7a5230;
+      --radio: 18px;
+      --sombra: 6px 6px 0 var(--ink);
+      --display: "Lilita One", "Arial Rounded MT Bold", system-ui, sans-serif;
+      --texto: "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
+      --emoji: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+      --zarape: repeating-linear-gradient(90deg,
+        var(--rosa) 0 14px, var(--naranja) 14px 28px, var(--amarillo) 28px 42px,
+        var(--verde) 42px 56px, var(--turquesa) 56px 70px, var(--morado) 70px 84px);
+    }
+
+    * { box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--texto);
+      font-size: 16px;
+      line-height: 1.5;
+      color: var(--ink);
+      background-color: var(--bg);
+      background-image:
+        radial-gradient(circle at 12px 12px, rgba(228, 0, 124, .10) 2px, transparent 2.5px),
+        radial-gradient(circle at 34px 34px, rgba(0, 163, 173, .10) 2px, transparent 2.5px);
+      background-size: 44px 44px;
+      overflow-x: hidden;
+    }
+    button, input { font: inherit; color: inherit; }
+    .emoji { font-family: var(--emoji); font-style: normal; line-height: 1; }
+    .sr-only {
+      position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+      overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+    }
+
+    /* ---------- Papel picado ---------- */
+    .papel {
+      position: relative;
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+      height: 96px;
+      padding-top: 6px;
+      overflow: hidden;
+    }
+    .papel::before {
+      content: "";
+      position: absolute;
+      top: 6px; left: 0; right: 0;
+      height: 3px;
+      background: var(--cuerda);
+      border-radius: 2px;
+      z-index: 1;
+    }
+    .bandera {
+      flex: 0 0 auto;
+      width: 62px;
+      height: 77px;
+      transform-origin: 50% 0;
+      animation: mecer var(--dur, 3.4s) ease-in-out var(--delay, 0s) infinite alternate;
+      filter: drop-shadow(0 3px 0 rgba(43, 22, 56, .18));
+    }
+    @keyframes mecer {
+      from { transform: rotate(-3.5deg); }
+      to   { transform: rotate(3.5deg); }
+    }
+    .svg-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+
+    /* ---------- Encabezado ---------- */
+    .contenedor {
+      width: 100%;
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 0 16px;
+    }
+    header.hero {
+      text-align: center;
+      padding: 8px 0 28px;
+    }
+    .marquesina {
+      display: inline-block;
+      font-family: var(--display);
+      font-size: .95rem;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--paper);
+      background: var(--morado);
+      border: 3px solid var(--ink);
+      border-radius: 999px;
+      padding: 4px 16px;
+      box-shadow: 3px 3px 0 var(--ink);
+      transform: rotate(-2deg);
+    }
+    h1.titulo {
+      margin: 10px 0 4px;
+      font-family: var(--display);
+      font-weight: 400;
+      font-size: clamp(3.6rem, 13vw, 7.5rem);
+      line-height: 1;
+      letter-spacing: .02em;
+    }
+    h1.titulo span {
+      display: inline-block;
+      -webkit-text-stroke: 3px var(--ink);
+      paint-order: stroke fill;
+      text-shadow: 5px 5px 0 var(--ink);
+      animation: brinco 2.6s ease-in-out infinite;
+    }
+    h1.titulo span:nth-child(1) { color: var(--rosa);     animation-delay: 0s; }
+    h1.titulo span:nth-child(2) { color: var(--naranja);  animation-delay: .12s; }
+    h1.titulo span:nth-child(3) { color: var(--amarillo); animation-delay: .24s; }
+    h1.titulo span:nth-child(4) { color: var(--verde);    animation-delay: .36s; }
+    h1.titulo span:nth-child(5) { color: var(--turquesa); animation-delay: .48s; }
+    h1.titulo span:nth-child(6) { color: var(--morado);   animation-delay: .60s; }
+    h1.titulo span:nth-child(7) { color: var(--rojo);     animation-delay: .72s; }
+    @keyframes brinco {
+      0%, 80%, 100% { transform: translateY(0) rotate(0); }
+      88% { transform: translateY(-8px) rotate(-3deg); }
+    }
+    .lema {
+      margin: 6px auto 16px;
+      max-width: 36ch;
+      font-size: clamp(1.05rem, 2.6vw, 1.25rem);
+      font-weight: 800;
+    }
+    .marcadores {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+    }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      font-weight: 800;
+      font-size: .92rem;
+      background: var(--paper);
+      border: 2px solid var(--ink);
+      border-radius: 999px;
+      box-shadow: 2px 2px 0 var(--ink);
+      white-space: nowrap;
+    }
+    .estado-vivo .punto {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: var(--amarillo);
+      border: 2px solid var(--ink);
+    }
+    .estado-vivo[data-estado="vivo"] .punto { background: #22c55e; animation: latido 1.6s ease-in-out infinite; }
+    .estado-vivo[data-estado="error"] .punto { background: var(--rojo); }
+    @keyframes latido {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, .55); }
+      50% { box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); }
+    }
+
+    /* ---------- Distribución ---------- */
+    main.tablero {
+      display: grid;
+      gap: 24px;
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-areas: "jugador" "registro" "juegos" "ranking";
+      padding-bottom: 40px;
+    }
+    #sec-jugador  { grid-area: jugador; }
+    #sec-registro { grid-area: registro; }
+    #sec-juegos   { grid-area: juegos; }
+    #sec-ranking  { grid-area: ranking; }
+    @media (min-width: 980px) {
+      main.tablero {
+        grid-template-columns: minmax(0, 1fr) minmax(330px, 400px);
+        grid-template-rows: auto auto 1fr;
+        grid-template-areas:
+          "jugador  ranking"
+          "registro ranking"
+          "juegos   ranking";
+        align-items: start;
+      }
+      #sec-ranking { position: sticky; top: 16px; }
+    }
+
+    /* ---------- Tarjetas de sección ---------- */
+    .cartel {
+      position: relative;
+      background: var(--paper);
+      border: 3px solid var(--ink);
+      border-radius: var(--radio);
+      box-shadow: var(--sombra);
+      padding: 26px 20px 20px;
+      overflow: hidden;
+    }
+    .cartel::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 10px;
+      background: var(--zarape);
+      border-bottom: 3px solid var(--ink);
+    }
+    .cartel h2 {
+      margin: 0 0 14px;
+      font-family: var(--display);
+      font-weight: 400;
+      font-size: 1.6rem;
+      line-height: 1.15;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .cartel h2 .emoji { font-size: 1.5rem; }
+    .cartel h2 .extra { margin-left: auto; }
+    .ayuda { margin: -6px 0 14px; color: var(--muted); font-weight: 600; font-size: .95rem; }
+
+    /* ---------- Campos ---------- */
+    label.etiqueta {
+      display: block;
+      font-weight: 900;
+      font-size: .9rem;
+      letter-spacing: .02em;
+      margin-bottom: 6px;
+    }
+    .campo {
+      width: 100%;
+      padding: 11px 14px;
+      font-weight: 700;
+      font-size: 1rem;
+      background: #fff;
+      border: 3px solid var(--ink);
+      border-radius: 12px;
+      outline: none;
+      transition: box-shadow .15s;
+    }
+    .campo::placeholder { color: #a8949f; font-weight: 600; }
+    .campo:focus-visible { box-shadow: 0 0 0 4px rgba(0, 163, 173, .4); }
+    .campo[aria-invalid="true"] { border-color: var(--rojo); }
+    button:focus-visible { outline: 3px solid var(--turquesa); outline-offset: 3px; }
+
+    .boton {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 11px 20px;
+      font-family: var(--display);
+      font-size: 1.15rem;
+      letter-spacing: .02em;
+      color: #fff;
+      background: var(--rosa);
+      border: 3px solid var(--ink);
+      border-radius: 12px;
+      box-shadow: 4px 4px 0 var(--ink);
+      cursor: pointer;
+      transition: transform .08s, box-shadow .08s, background .15s;
+      text-shadow: 1px 1px 0 rgba(43, 22, 56, .35);
+    }
+    .boton:hover { background: #c9006d; }
+    .boton:active { transform: translate(3px, 3px); box-shadow: 1px 1px 0 var(--ink); }
+    .boton[disabled] { opacity: .55; cursor: not-allowed; transform: none; box-shadow: 4px 4px 0 var(--ink); }
+    .boton.secundario { color: var(--ink); background: var(--paper); text-shadow: none; }
+    .boton.secundario:hover { background: #fff; }
+    .boton.verde { background: var(--verde); }
+    .boton.verde:hover { background: #188547; }
+
+    /* ---------- Tu Enterprise ID (boleto) ---------- */
+    .boleto {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      align-items: center;
+      gap: 16px;
+    }
+    .boleto .talon {
+      display: grid;
+      place-items: center;
+      width: 64px; height: 64px;
+      font-size: 2.2rem;
+      background: var(--amarillo);
+      border: 3px solid var(--ink);
+      border-radius: 50%;
+      box-shadow: 3px 3px 0 var(--ink);
+      transform: rotate(-8deg);
+    }
+    .boleto .cabeza { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+    .boleto .campo { font-size: 1.15rem; }
+    .guardado {
+      flex: 0 0 auto;
+      margin-bottom: 6px;
+      font-weight: 800;
+      font-size: .9rem;
+      color: var(--verde);
+      opacity: 0;
+      transition: opacity .2s;
+    }
+    .guardado.visible { opacity: 1; }
+    .aviso-jugador { margin: 8px 0 0; font-weight: 700; font-size: .9rem; color: var(--muted); }
+    .aviso-jugador.error, .pista.error { color: var(--rojo); }
+
+    /* ---------- Registrar juego ---------- */
+    .form-registro {
+      display: grid;
+      gap: 14px;
+      grid-template-columns: minmax(0, 1fr);
+    }
+    @media (min-width: 640px) {
+      .form-registro { grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) 110px; }
+      .form-registro .ancho { grid-column: 1 / -1; }
+      .form-registro .campo-eid { grid-column: 2 / -1; }
+    }
+    #icono { text-align: center; font-family: var(--emoji); font-size: 1.4rem; padding: 6px 10px; height: 52px; }
+    #nombre-juego, #url-juego, #autor, #enterprise-id { height: 52px; }
+    .pista { margin: 6px 0 0; font-size: .82rem; font-weight: 700; color: var(--muted); }
+    .emojis {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+    .emojis .titulo-emojis { font-weight: 800; font-size: .9rem; color: var(--muted); margin-right: 4px; }
+    .emojis button {
+      width: 42px; height: 42px;
+      display: grid; place-items: center;
+      font-family: var(--emoji);
+      font-size: 1.35rem;
+      background: #fff;
+      border: 2px solid var(--ink);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: transform .1s, background .1s;
+    }
+    .emojis button:hover { transform: translateY(-2px) rotate(-6deg); background: #fff4c7; }
+    .emojis button[aria-pressed="true"] { background: var(--amarillo); box-shadow: 2px 2px 0 var(--ink); }
+    .acciones-registro { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; }
+    .mensaje-form { margin: 0; font-weight: 800; font-size: .95rem; }
+    .mensaje-form.error { color: var(--rojo); }
+    .mensaje-form.ok { color: var(--verde); }
+
+    /* ---------- Juegos (cartas de lotería) ---------- */
+    .cartas {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(178px, 1fr));
+      gap: 20px;
+    }
+    .carta {
+      --c: var(--rosa);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 14px;
+      background: #fffdf6;
+      border: 3px solid var(--ink);
+      border-radius: 14px;
+      box-shadow: inset 0 0 0 5px #fffdf6, inset 0 0 0 8px var(--c), 5px 5px 0 var(--ink);
+      transition: transform .15s;
+    }
+    .carta:hover { transform: translateY(-3px) rotate(-1deg); }
+    .carta:nth-child(even):hover { transform: translateY(-3px) rotate(1deg); }
+    .carta .numero {
+      position: absolute;
+      top: 14px; left: 16px;
+      font-family: var(--display);
+      font-size: 1rem;
+      color: var(--ink);
+      background: #fffdf6;
+      border: 2px solid var(--ink);
+      border-radius: 8px;
+      padding: 0 6px;
+      z-index: 1;
+    }
+    .carta .nuevo-tag {
+      position: absolute;
+      top: 10px; right: 10px;
+      font-family: var(--display);
+      font-size: .8rem;
+      letter-spacing: .04em;
+      color: #fff;
+      background: var(--rojo);
+      border: 2px solid var(--ink);
+      border-radius: 999px;
+      padding: 1px 8px;
+      transform: rotate(8deg);
+      z-index: 1;
+    }
+    .carta .ilustracion {
+      display: grid;
+      place-items: center;
+      aspect-ratio: 1 / 0.82;
+      margin-top: 4px;
+      font-size: 4rem;
+      background-color: var(--c);
+      background-image: radial-gradient(circle at 8px 8px, rgba(255, 255, 255, .28) 2.5px, transparent 3px);
+      background-size: 18px 18px;
+      border: 3px solid var(--ink);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .carta .ilustracion .emoji { filter: drop-shadow(3px 3px 0 rgba(43, 22, 56, .35)); }
+    .carta .ilustracion img { width: 70%; height: 70%; object-fit: contain; }
+    .carta .nombre {
+      margin: 0;
+      font-family: var(--display);
+      font-weight: 400;
+      font-size: 1.25rem;
+      line-height: 1.1;
+      text-align: center;
+      text-transform: uppercase;
+      letter-spacing: .02em;
+      overflow-wrap: anywhere;
+    }
+    .carta .autoria {
+      margin: -4px 0 0;
+      text-align: center;
+      line-height: 1.25;
+      overflow-wrap: anywhere;
+    }
+    .carta [hidden] { display: none !important; }
+    .carta .autor { display: block; font-weight: 800; font-size: .95rem; }
+    .carta .eid { display: block; font-weight: 700; font-size: .75rem; color: var(--muted); letter-spacing: .01em; }
+    .carta .record {
+      margin: -2px 0 0;
+      min-height: 1.4em;
+      font-size: .85rem;
+      font-weight: 700;
+      color: var(--muted);
+      text-align: center;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .carta .boton { width: 100%; margin-top: auto; }
+    .carta.nueva { animation: aparecer .55s cubic-bezier(.2, 1.4, .4, 1) both; }
+    @keyframes aparecer {
+      from { opacity: 0; transform: scale(.6) rotate(-8deg); }
+      to   { opacity: 1; transform: none; }
+    }
+
+    .vacio {
+      margin: 0;
+      padding: 28px 16px;
+      text-align: center;
+      font-weight: 800;
+      color: var(--muted);
+      border: 3px dashed #d9c4b0;
+      border-radius: 14px;
+    }
+    .vacio .emoji { display: block; font-size: 2.6rem; margin-bottom: 8px; }
+
+    /* ---------- Ranking ---------- */
+    .subtitulo {
+      margin: 0 0 10px;
+      font-family: var(--display);
+      font-weight: 400;
+      font-size: 1.2rem;
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+    }
+    .subtitulo small { font-family: var(--texto); font-weight: 700; font-size: .85rem; color: var(--muted); }
+    .top { list-style: none; margin: 0 0 22px; padding: 0; display: grid; gap: 8px; }
+    .top li {
+      display: grid;
+      grid-template-columns: 40px minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px 8px 8px;
+      background: #fff;
+      border: 2px solid var(--ink);
+      border-radius: 12px;
+    }
+    .top li.oro    { background: #fff4c2; }
+    .top li.plata  { background: #eef1f6; }
+    .top li.bronce { background: #ffe6d1; }
+    .top li.mio { box-shadow: inset 5px 0 0 var(--rosa); }
+    .top li.flash { animation: flash 1.6s ease-out; }
+    @keyframes flash {
+      0% { background: var(--amarillo); transform: scale(1.03); }
+      100% { transform: none; }
+    }
+    .posicion {
+      display: grid;
+      place-items: center;
+      width: 36px; height: 36px;
+      font-family: var(--display);
+      font-size: 1.05rem;
+      background: var(--paper);
+      border: 2px solid var(--ink);
+      border-radius: 50%;
+    }
+    .posicion.medalla { font-family: var(--emoji); font-size: 1.6rem; border: 0; background: none; }
+    .quien { min-width: 0; }
+    .quien strong {
+      display: block;
+      font-weight: 900;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .quien strong .tu {
+      font-weight: 800; font-size: .75rem;
+      color: #fff; background: var(--rosa);
+      border-radius: 999px; padding: 1px 7px; margin-left: 4px;
+      vertical-align: 2px;
+    }
+    .quien span {
+      display: block;
+      font-size: .85rem; font-weight: 700; color: var(--muted);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .puntos {
+      font-family: var(--display);
+      font-size: 1.3rem;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+    .puntos small { font-family: var(--texto); font-size: .75rem; font-weight: 800; color: var(--muted); margin-left: 2px; }
+
+    .totales {
+      list-style: none; margin: 0; padding: 0 4px 0 0;
+      display: grid; gap: 10px;
+      max-height: 420px; overflow-y: auto;
+    }
+    .totales li { display: grid; gap: 4px; }
+    .totales .linea {
+      display: grid;
+      grid-template-columns: 28px minmax(0, 1fr) auto;
+      align-items: baseline;
+      gap: 8px;
+    }
+    .totales .lugar { font-family: var(--display); color: var(--muted); text-align: right; }
+    .totales .jugador { font-weight: 900; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .totales .jugador small { font-weight: 700; color: var(--muted); }
+    .totales .jugador .tu {
+      font-weight: 800; font-size: .72rem; color: #fff; background: var(--rosa);
+      border-radius: 999px; padding: 1px 7px; margin-left: 2px; vertical-align: 2px;
+    }
+    .barra {
+      margin-left: 36px;
+      height: 12px;
+      background: #f1e3cf;
+      border: 2px solid var(--ink);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .barra i {
+      display: block;
+      height: 100%;
+      width: 0;
+      background: var(--zarape);
+      transition: width .6s cubic-bezier(.2, .9, .3, 1);
+    }
+
+    /* ---------- Diálogo Enterprise ID ---------- */
+    dialog {
+      width: min(92vw, 420px);
+      padding: 0;
+      color: var(--ink);
+      background: var(--paper);
+      border: 3px solid var(--ink);
+      border-radius: var(--radio);
+      box-shadow: var(--sombra);
+    }
+    dialog::backdrop { background: rgba(43, 22, 56, .55); }
+    dialog[open] { animation: aparecer .35s cubic-bezier(.2, 1.3, .4, 1) both; }
+    dialog form { padding: 26px 22px 22px; }
+    dialog .tira { height: 10px; background: var(--zarape); border-bottom: 3px solid var(--ink); }
+    dialog h2 { margin: 0 0 4px; font-family: var(--display); font-weight: 400; font-size: 1.7rem; }
+    dialog p { margin: 0 0 16px; font-weight: 600; color: var(--muted); }
+    dialog p strong { color: var(--ink); }
+    dialog .botones { display: flex; justify-content: flex-end; gap: 12px; margin-top: 18px; flex-wrap: wrap; }
+
+    /* ---------- Avisos ---------- */
+    .avisos {
+      position: fixed;
+      right: 16px; bottom: 16px; left: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 10px;
+      pointer-events: none;
+      z-index: 50;
+    }
+    .aviso {
+      max-width: 360px;
+      padding: 12px 16px;
+      font-weight: 800;
+      background: var(--paper);
+      border: 3px solid var(--ink);
+      border-left-width: 10px;
+      border-left-color: var(--turquesa);
+      border-radius: 12px;
+      box-shadow: 4px 4px 0 var(--ink);
+      animation: entrar .35s cubic-bezier(.2, 1.3, .4, 1) both;
+      pointer-events: auto;
+    }
+    .aviso.error { border-left-color: var(--rojo); }
+    .aviso.fiesta { border-left-color: var(--rosa); }
+    .aviso.saliendo { animation: salir .3s ease-in both; }
+    @keyframes entrar { from { opacity: 0; transform: translateY(16px) scale(.95); } to { opacity: 1; transform: none; } }
+    @keyframes salir { to { opacity: 0; transform: translateX(30px); } }
+
+    footer {
+      padding: 0 0 28px;
+      text-align: center;
+      font-weight: 700;
+      font-size: .9rem;
+      color: var(--muted);
+    }
+
+    @media (max-width: 520px) {
+      .papel { height: 74px; }
+      .bandera { width: 46px; height: 57px; }
+      .cartel { padding: 24px 14px 16px; }
+      .cartas { grid-template-columns: repeat(auto-fill, minmax(145px, 1fr)); gap: 14px; }
+      .carta .ilustracion { font-size: 3.2rem; }
+      .carta .nombre { font-size: 1.05rem; }
+      .boleto .talon { width: 50px; height: 50px; font-size: 1.7rem; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Recortes del papel picado (máscaras compartidas por todas las banderitas) -->
+  <svg class="svg-defs" aria-hidden="true" focusable="false">
+    <defs>
+      <g id="pp-comun" fill="#000">
+        <circle cx="14" cy="15" r="2.6"/><circle cx="26" cy="15" r="2.6"/><circle cx="38" cy="15" r="2.6"/>
+        <circle cx="50" cy="15" r="2.6"/><circle cx="62" cy="15" r="2.6"/><circle cx="74" cy="15" r="2.6"/>
+        <circle cx="86" cy="15" r="2.6"/>
+        <rect x="9" y="24" width="82" height="68" rx="4" fill="none" stroke="#000" stroke-width="2" stroke-dasharray="6 4"/>
+        <path d="M22 33l4 5-4 5-4-5zM78 33l4 5-4 5-4-5zM22 73l4 5-4 5-4-5zM78 73l4 5-4 5-4-5z"/>
+        <path d="M14 98l3 4-3 4-3-4zM26 98l3 4-3 4-3-4zM38 98l3 4-3 4-3-4zM50 98l3 4-3 4-3-4zM62 98l3 4-3 4-3-4zM74 98l3 4-3 4-3-4zM86 98l3 4-3 4-3-4z"/>
+      </g>
+      <mask id="pp0" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="124">
+        <rect width="100" height="124" fill="#fff"/>
+        <use href="#pp-comun"/>
+        <g fill="#000">
+          <circle cx="50" cy="58" r="5"/>
+          <ellipse cx="50" cy="44" rx="4.2" ry="7.5"/>
+          <ellipse cx="50" cy="44" rx="4.2" ry="7.5" transform="rotate(45 50 58)"/>
+          <ellipse cx="50" cy="44" rx="4.2" ry="7.5" transform="rotate(90 50 58)"/>
+          <ellipse cx="50" cy="44" rx="4.2" ry="7.5" transform="rotate(135 50 58)"/>
+          <ellipse cx="50" cy="44" rx="4.2" ry="7.5" transform="rotate(180 50 58)"/>
+          <ellipse cx="50" cy="44" rx="4.2" ry="7.5" transform="rotate(225 50 58)"/>
+          <ellipse cx="50" cy="44" rx="4.2" ry="7.5" transform="rotate(270 50 58)"/>
+          <ellipse cx="50" cy="44" rx="4.2" ry="7.5" transform="rotate(315 50 58)"/>
+        </g>
+      </mask>
+      <mask id="pp1" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="124">
+        <rect width="100" height="124" fill="#fff"/>
+        <use href="#pp-comun"/>
+        <polygon fill="#000" points="50,39 54.7,51.5 68.1,52.1 57.6,60.5 61.2,73.4 50,66 38.8,73.4 42.4,60.5 31.9,52.1 45.3,51.5"/>
+      </mask>
+      <mask id="pp2" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="124">
+        <rect width="100" height="124" fill="#fff"/>
+        <use href="#pp-comun"/>
+        <path fill="#000" d="M50 74C22 56 30 36 44 42c3 1.5 5 4 6 6 1-2 3-4.5 6-6 14-6 22 14-6 32z"/>
+      </mask>
+      <mask id="pp3" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="124">
+        <rect width="100" height="124" fill="#fff"/>
+        <use href="#pp-comun"/>
+        <circle cx="50" cy="54" r="15" fill="#000"/>
+        <rect x="42" y="60" width="16" height="15" rx="3" fill="#000"/>
+        <circle cx="44.5" cy="54" r="4" fill="#fff"/>
+        <circle cx="55.5" cy="54" r="4" fill="#fff"/>
+        <polygon points="50,59 47.6,63.5 52.4,63.5" fill="#fff"/>
+        <rect x="45.4" y="67" width="1.8" height="8" fill="#fff"/>
+        <rect x="49.1" y="67" width="1.8" height="8" fill="#fff"/>
+        <rect x="52.8" y="67" width="1.8" height="8" fill="#fff"/>
+      </mask>
+    </defs>
+  </svg>
+
+  <div class="papel" id="papel" aria-hidden="true"></div>
+
+  <div class="contenedor">
+    <header class="hero">
+      <span class="marquesina">★ Consola de juegos ★</span>
+      <h1 class="titulo" aria-label="Kermese"><span>K</span><span>e</span><span>r</span><span>m</span><span>e</span><span>s</span><span>e</span></h1>
+      <p class="lema">¡Pásele, pásele! Escoja su juego, gane puntos y suba al ranking.</p>
+      <div class="marcadores">
+        <span class="chip estado-vivo" id="estado-vivo" data-estado="conectando" role="status">
+          <span class="punto" aria-hidden="true"></span><span class="texto">Conectando…</span>
+        </span>
+        <span class="chip"><span class="emoji" aria-hidden="true">🎪</span><span id="cuenta-juegos">0 juegos</span></span>
+        <span class="chip"><span class="emoji" aria-hidden="true">🎯</span><span id="cuenta-partidas">0 partidas</span></span>
+        <span class="chip"><span class="emoji" aria-hidden="true">🙋</span><span id="cuenta-jugadores">0 jugadores</span></span>
+      </div>
+    </header>
+
+    <main class="tablero">
+      <!-- 1. Tu Enterprise ID -->
+      <section class="cartel" id="sec-jugador" aria-labelledby="tit-jugador">
+        <div class="boleto">
+          <div class="talon emoji" aria-hidden="true">🎟️</div>
+          <div>
+            <div class="cabeza">
+              <label class="etiqueta" id="tit-jugador" for="jugador-eid">Tu Enterprise ID</label>
+              <span class="guardado" id="guardado" aria-live="polite">✓ Guardado</span>
+            </div>
+            <input class="campo" id="jugador-eid" type="text" maxlength="60" autocomplete="off" autocapitalize="none"
+                   placeholder="nombre.apellido" spellcheck="false"
+                   pattern="[a-z0-9]+(\.[a-z0-9]+)+" aria-describedby="aviso-jugador">
+            <p class="aviso-jugador" id="aviso-jugador">Formato nombre.apellido, sin @accenture.com. Con él se anotan tus puntajes en el ranking.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. Registrar juego -->
+      <section class="cartel" id="sec-registro" aria-labelledby="tit-registro">
+        <h2 id="tit-registro"><span class="emoji" aria-hidden="true">🛠️</span> Registra tu juego</h2>
+        <form class="form-registro" id="form-registro" novalidate>
+          <div>
+            <label class="etiqueta" for="nombre-juego">Nombre del juego</label>
+            <input class="campo" id="nombre-juego" name="nombre" type="text" maxlength="60" required
+                   placeholder="Tiro al blanco" autocomplete="off">
+          </div>
+          <div>
+            <label class="etiqueta" for="url-juego">URL</label>
+            <input class="campo" id="url-juego" name="url" type="text" inputmode="url" required
+                   placeholder="https://usuario.github.io/kermese-juego-tiro/" autocomplete="off" spellcheck="false">
+          </div>
+          <div>
+            <label class="etiqueta" for="icono">Icono</label>
+            <input class="campo" id="icono" name="icono" type="text" maxlength="16" value="🎯"
+                   autocomplete="off" aria-describedby="ayuda-icono">
+          </div>
+          <div>
+            <label class="etiqueta" for="autor">Nombre del autor</label>
+            <input class="campo" id="autor" name="autor" type="text" maxlength="60" required
+                   placeholder="Ana López" autocomplete="name">
+          </div>
+          <div class="campo-eid">
+            <label class="etiqueta" for="enterprise-id">Enterprise ID</label>
+            <input class="campo" id="enterprise-id" name="enterprise_id" type="text" maxlength="60" required
+                   placeholder="ana.lopez" autocomplete="off" autocapitalize="none" spellcheck="false"
+                   pattern="[a-z0-9]+(\.[a-z0-9]+)+" aria-describedby="pista-eid">
+            <p class="pista" id="pista-eid">Formato nombre.apellido, sin @accenture.com. Solo minúsculas, números y puntos.</p>
+          </div>
+          <div class="emojis ancho" id="emojis" role="group" aria-label="Iconos sugeridos">
+            <span class="titulo-emojis" id="ayuda-icono">Elige uno:</span>
+          </div>
+          <div class="acciones-registro ancho">
+            <button class="boton verde" type="submit" id="btn-registrar">
+              <span class="emoji" aria-hidden="true">🎪</span> Registrar juego
+            </button>
+            <p class="mensaje-form" id="mensaje-form" role="status" aria-live="polite"></p>
+          </div>
+        </form>
+      </section>
+
+      <!-- 3. Juegos -->
+      <section class="cartel" id="sec-juegos" aria-labelledby="tit-juegos">
+        <h2 id="tit-juegos"><span class="emoji" aria-hidden="true">🎠</span> Los juegos de la feria</h2>
+        <p class="ayuda">Cada juego se abre en una pestaña nueva con tu Enterprise ID.</p>
+        <div class="cartas" id="cartas" aria-live="polite"></div>
+        <p class="vacio" id="juegos-vacio" hidden>
+          <span class="emoji" aria-hidden="true">🪅</span>
+          <span id="juegos-vacio-texto">Cargando juegos…</span>
+        </p>
+      </section>
+
+      <!-- 4. Ranking -->
+      <section class="cartel" id="sec-ranking" aria-labelledby="tit-ranking">
+        <h2 id="tit-ranking"><span class="emoji" aria-hidden="true">🏆</span> Ranking</h2>
+        <h3 class="subtitulo">Top 10 <small>mejores puntajes</small></h3>
+        <ol class="top" id="top10"></ol>
+        <p class="vacio" id="top-vacio" hidden>
+          <span class="emoji" aria-hidden="true">🎯</span>
+          <span id="top-vacio-texto">Cargando puntajes…</span>
+        </p>
+        <h3 class="subtitulo">Total por jugador <small>puntos acumulados</small></h3>
+        <ol class="totales" id="totales"></ol>
+        <p class="vacio" id="totales-vacio" hidden>
+          <span class="emoji" aria-hidden="true">🙋</span>
+          <span>Todavía nadie suma puntos.</span>
+        </p>
+      </section>
+    </main>
+  </div>
+
+  <footer>kermese-consola · Juegos y puntajes en vivo con Supabase Realtime · ¡Que gane el mejor! 🌮</footer>
+
+  <!-- Pedir Enterprise ID antes de jugar -->
+  <dialog id="dlg-jugador" aria-labelledby="dlg-titulo">
+    <div class="tira" aria-hidden="true"></div>
+    <form id="form-dlg" method="dialog" novalidate>
+      <h2 id="dlg-titulo">¿Cuál es tu Enterprise ID?</h2>
+      <p>Antes de jugar <strong id="dlg-juego">este juego</strong>, dinos tu Enterprise ID para anotar tus puntos.</p>
+      <label class="etiqueta" for="dlg-input">Tu Enterprise ID</label>
+      <input class="campo" id="dlg-input" type="text" maxlength="60" autocomplete="off" autocapitalize="none"
+             placeholder="nombre.apellido" spellcheck="false"
+             pattern="[a-z0-9]+(\.[a-z0-9]+)+" aria-describedby="dlg-pista">
+      <p class="pista" id="dlg-pista" aria-live="polite">Formato nombre.apellido, sin @accenture.com.</p>
+      <div class="botones">
+        <button class="boton secundario" type="button" id="dlg-cancelar">Cancelar</button>
+        <button class="boton" type="submit">¡A jugar! <span class="emoji" aria-hidden="true">🎲</span></button>
+      </div>
+    </form>
+  </dialog>
+
+  <div class="avisos" id="avisos" aria-live="polite"></div>
+
+  <script type="module">
+    import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.117.2'
+
+    const SUPABASE_URL = 'https://gcbrqblywzllvfvtrrmj.supabase.co'
+    const SUPABASE_KEY = 'sb_publishable_cNWGPbdzmtPwPEsUdz5wtQ_cc3EhtAp'
+    const CLAVE_JUGADOR = 'kermese.jugador' // Enterprise ID del jugador en localStorage
+    const COLORES = ['#e4007c', '#ff7a00', '#ffc531', '#1f9d55', '#00a3ad', '#7b3fa0', '#e23b3b']
+    const EMOJIS = ['🎯', '🎲', '🃏', '🐓', '🌵', '🎈', '🪅', '🎡', '🍉', '🌮', '⚽', '🧩', '🚀', '👾', '🐸', '💀']
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    })
+
+    const $ = (sel) => document.querySelector(sel)
+    const fmtNum = new Intl.NumberFormat('es-MX')
+    const fmtRel = new Intl.RelativeTimeFormat('es-MX', { numeric: 'auto' })
+
+    const estado = {
+      apps: new Map(),       // id -> fila de apps
+      puntajes: new Map(),   // id -> fila de puntajes
+      cargado: { apps: false, puntajes: false },
+    }
+
+    // ---------- utilidades ----------
+    function h(tag, attrs = {}, ...hijos) {
+      const el = document.createElement(tag)
+      for (const [k, v] of Object.entries(attrs)) {
+        if (v == null || v === false) continue
+        if (k === 'class') el.className = v
+        else if (k === 'style') el.style.cssText = v
+        else if (k.startsWith('on')) el.addEventListener(k.slice(2), v)
+        else el.setAttribute(k, v === true ? '' : v)
+      }
+      for (const hijo of hijos.flat()) {
+        if (hijo == null || hijo === false) continue
+        el.append(hijo instanceof Node ? hijo : document.createTextNode(String(hijo)))
+      }
+      return el
+    }
+
+    const leerLS = (k) => { try { return localStorage.getItem(k) } catch { return null } }
+    const escribirLS = (k, v) => { try { v ? localStorage.setItem(k, v) : localStorage.removeItem(k) } catch {} }
+
+    const sinAcentos = (s) => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '')
+    const normalizar = (s) => sinAcentos(s).trim().replace(/\s+/g, ' ').toLowerCase()
+    const plural = (n, uno, varios) => `${fmtNum.format(n)} ${n === 1 ? uno : varios}`
+
+    function primerGrafema(texto) {
+      const t = String(texto ?? '').trim()
+      if (!t) return ''
+      if (window.Intl?.Segmenter) {
+        const [primero] = new Intl.Segmenter('es', { granularity: 'grapheme' }).segment(t)
+        return primero?.segment ?? ''
+      }
+      return Array.from(t)[0] ?? ''
+    }
+
+    // Enterprise ID: nombre.apellido, solo minúsculas, números y puntos (sin @accenture.com).
+    // La usan el registro de juegos y el Enterprise ID del jugador.
+    function errorEnterpriseId(eid) {
+      if (!eid) return 'Escribe tu Enterprise ID.'
+      if (eid.includes('@')) return 'Escribe el Enterprise ID sin @accenture.com.'
+      if (/[A-Z]/.test(eid)) return 'El Enterprise ID va en minúsculas.'
+      if (/[^a-z0-9.]/.test(eid)) return 'El Enterprise ID solo puede tener letras minúsculas, números y puntos.'
+      if (!/^[a-z0-9]+(\.[a-z0-9]+)+$/.test(eid)) return 'Usa el formato nombre.apellido (sin puntos al inicio, al final ni seguidos).'
+      return null
+    }
+
+    // Señala (o limpia) el error de un campo de Enterprise ID en su texto de ayuda.
+    function marcarEid(campo, aviso, error, ayuda) {
+      if (error) campo.setAttribute('aria-invalid', 'true')
+      else campo.removeAttribute('aria-invalid')
+      aviso.classList.toggle('error', Boolean(error))
+      aviso.textContent = error || ayuda
+    }
+
+    function esUrlJugable(url) {
+      try { return ['http:', 'https:'].includes(new URL(url).protocol) } catch { return false }
+    }
+
+    function normalizarUrl(valor) {
+      let v = String(valor ?? '').trim()
+      if (!v) return null
+      if (!/^[a-z][a-z\d+.-]*:/i.test(v)) v = 'https://' + v
+      try {
+        const u = new URL(v)
+        if (!['http:', 'https:'].includes(u.protocol) || !u.hostname.includes('.') && u.hostname !== 'localhost') return null
+        return u.href
+      } catch { return null }
+    }
+
+    // Agrega ?jugador=<enterprise_id>&oficial=1 al final, respetando parámetros y #hash existentes.
+    function urlDeJuego(base, jugador) {
+      const u = new URL(base)
+      for (const p of ['jugador', 'oficial']) if (u.searchParams.has(p)) u.searchParams.delete(p)
+      const sep = u.search && u.search !== '?' ? '&' : '?'
+      u.search = (u.search === '?' ? '' : u.search) + sep + 'jugador=' + encodeURIComponent(jugador) + '&oficial=1'
+      return u.href
+    }
+
+    function haceCuanto(fecha) {
+      const t = new Date(fecha).getTime()
+      if (!Number.isFinite(t)) return ''
+      const seg = Math.round((t - Date.now()) / 1000)
+      const abs = Math.abs(seg)
+      if (abs < 45) return 'justo ahora'
+      if (abs < 3600) return fmtRel.format(Math.round(seg / 60), 'minute')
+      if (abs < 86400) return fmtRel.format(Math.round(seg / 3600), 'hour')
+      if (abs < 86400 * 30) return fmtRel.format(Math.round(seg / 86400), 'day')
+      return new Date(t).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })
+    }
+
+    function colorDe(clave) {
+      let n = 0
+      for (const ch of String(clave)) n = (n * 31 + ch.codePointAt(0)) >>> 0
+      return COLORES[n % COLORES.length]
+    }
+
+    function avisar(texto, tipo = '') {
+      const cont = $('#avisos')
+      while (cont.children.length >= 3) cont.firstElementChild.remove()
+      const el = h('div', { class: `aviso ${tipo}` }, texto)
+      cont.append(el)
+      setTimeout(() => {
+        el.classList.add('saliendo')
+        setTimeout(() => el.remove(), 320)
+      }, 4200)
+    }
+
+    // ---------- papel picado ----------
+    function colgarPapelPicado() {
+      const papel = $('#papel')
+      const silueta = 'M0 0H100V112' + 'a5 5 0 0 1-10 0'.repeat(10) + 'Z'
+      let html = ''
+      for (let i = 0; i < 40; i++) {
+        const color = COLORES[i % COLORES.length]
+        const dur = (3 + (i % 5) * 0.35).toFixed(2)
+        const delay = (-(i * 0.47) % 3).toFixed(2)
+        html += `<svg class="bandera" viewBox="0 0 100 124" style="--dur:${dur}s;--delay:${delay}s">
+          <path d="${silueta}" fill="${color}" mask="url(#pp${i % 4})"/>
+          <rect width="100" height="7" fill="#000" fill-opacity=".14"/>
+        </svg>`
+      }
+      papel.innerHTML = html
+    }
+
+    // ---------- tu Enterprise ID ----------
+    const inputEid = $('#jugador-eid')
+    const avisoEid = $('#aviso-jugador')
+    const AYUDA_EID = 'Formato nombre.apellido, sin @accenture.com. Con él se anotan tus puntajes en el ranking.'
+    let timerGuardado
+
+    // El Enterprise ID del jugador solo si es válido ('' si está vacío o mal escrito).
+    function eidActual() {
+      const v = inputEid.value.trim()
+      return v && !errorEnterpriseId(v) ? v : ''
+    }
+
+    function mostrarGuardado() {
+      $('#guardado').classList.add('visible')
+      clearTimeout(timerGuardado)
+      timerGuardado = setTimeout(() => $('#guardado').classList.remove('visible'), 1600)
+    }
+
+    // Mientras se escribe solo se actualiza un error ya señalado; marcar=true lo señala
+    // desde ya (al salir del campo).
+    function pintarEid({ marcar = false } = {}) {
+      const v = inputEid.value.trim()
+      const error = v ? errorEnterpriseId(v) : null
+      const mostrarError = error && (marcar || inputEid.getAttribute('aria-invalid') === 'true')
+      marcarEid(inputEid, avisoEid, mostrarError ? error : null,
+        v && !error ? `¡Hola, ${v}! Tus puntajes se anotan con este Enterprise ID.` : AYUDA_EID)
+    }
+
+    function guardarEid(eid) {
+      inputEid.value = eid
+      escribirLS(CLAVE_JUGADOR, eid)
+      pintarEid()
+      mostrarGuardado()
+      renderRanking()
+    }
+
+    // Lo guardado antes del Enterprise ID (un nombre libre) ya no sirve: se descarta.
+    const eidGuardado = leerLS(CLAVE_JUGADOR) ?? ''
+    if (eidGuardado && errorEnterpriseId(eidGuardado)) escribirLS(CLAVE_JUGADOR, null)
+    else inputEid.value = eidGuardado
+    pintarEid()
+    inputEid.addEventListener('input', () => {
+      const eid = eidActual()
+      escribirLS(CLAVE_JUGADOR, eid)
+      pintarEid()
+      if (eid) mostrarGuardado()
+    })
+    inputEid.addEventListener('change', () => { pintarEid({ marcar: true }); renderRanking() })
+    window.addEventListener('storage', (e) => {
+      if (e.key === CLAVE_JUGADOR) { inputEid.value = e.newValue ?? ''; pintarEid(); renderRanking() }
+    })
+
+    // ---------- jugar ----------
+    const dlg = $('#dlg-jugador')
+    const dlgInput = $('#dlg-input')
+    const dlgPista = $('#dlg-pista')
+    const AYUDA_DLG = 'Formato nombre.apellido, sin @accenture.com.'
+    let juegoPendiente = null
+
+    function abrirJuego(app, eid) {
+      window.open(urlDeJuego(app.url, eid), '_blank', 'noopener')
+    }
+
+    function jugar(app) {
+      if (!esUrlJugable(app.url)) { avisar('Este juego no tiene una URL válida.', 'error'); return }
+      const eid = eidActual()
+      if (eid) { abrirJuego(app, eid); return }
+      juegoPendiente = app
+      $('#dlg-juego').textContent = app.nombre || 'este juego'
+      // Si el campo tiene un Enterprise ID mal escrito, se trae al diálogo con su error.
+      dlgInput.value = inputEid.value.trim()
+      marcarEid(dlgInput, dlgPista, dlgInput.value && errorEnterpriseId(dlgInput.value), AYUDA_DLG)
+      dlg.showModal()
+      dlgInput.focus()
+    }
+
+    dlgInput.addEventListener('input', () => {
+      if (dlgInput.getAttribute('aria-invalid') === 'true') {
+        marcarEid(dlgInput, dlgPista, errorEnterpriseId(dlgInput.value.trim()), AYUDA_DLG)
+      }
+    })
+    $('#form-dlg').addEventListener('submit', (e) => {
+      e.preventDefault()
+      const valor = dlgInput.value.trim()
+      const error = errorEnterpriseId(valor)
+      marcarEid(dlgInput, dlgPista, error, AYUDA_DLG)
+      if (error) { dlgInput.focus(); return }
+      guardarEid(valor)
+      dlg.close()
+      if (juegoPendiente) abrirJuego(juegoPendiente, valor)
+      juegoPendiente = null
+    })
+    $('#dlg-cancelar').addEventListener('click', () => dlg.close())
+    dlg.addEventListener('close', () => { juegoPendiente = null })
+
+    // ---------- registrar juego ----------
+    const formRegistro = $('#form-registro')
+    const inputIcono = $('#icono')
+    const msgForm = $('#mensaje-form')
+    const misRegistros = new Set() // ids registrados desde esta pestaña (sin aviso duplicado)
+
+    const contEmojis = $('#emojis')
+    for (const em of EMOJIS) {
+      contEmojis.append(h('button', {
+        type: 'button', 'aria-label': `Usar ${em}`, 'aria-pressed': String(em === inputIcono.value),
+        onclick: () => { inputIcono.value = em; marcarEmoji() },
+      }, em))
+    }
+    function marcarEmoji() {
+      const actual = primerGrafema(inputIcono.value)
+      for (const b of contEmojis.querySelectorAll('button')) b.setAttribute('aria-pressed', String(b.textContent === actual))
+    }
+    inputIcono.addEventListener('input', marcarEmoji)
+
+    function mensaje(texto, tipo) {
+      msgForm.textContent = texto
+      msgForm.className = `mensaje-form ${tipo ?? ''}`
+    }
+
+    for (const c of formRegistro.querySelectorAll('.campo')) {
+      c.addEventListener('input', () => c.removeAttribute('aria-invalid'))
+    }
+
+    formRegistro.addEventListener('submit', async (e) => {
+      e.preventDefault()
+      const campoNombre = $('#nombre-juego')
+      const campoUrl = $('#url-juego')
+      const campoAutor = $('#autor')
+      const campoEid = $('#enterprise-id')
+      for (const c of [campoNombre, campoUrl, inputIcono, campoAutor, campoEid]) c.removeAttribute('aria-invalid')
+
+      const nombre = campoNombre.value.trim().replace(/\s+/g, ' ')
+      const url = normalizarUrl(campoUrl.value)
+      const icono = primerGrafema(inputIcono.value) || '🎮'
+      const autor = campoAutor.value.trim().replace(/\s+/g, ' ')
+      const enterprise_id = campoEid.value.trim()
+
+      const invalido = (campo, texto) => { campo.setAttribute('aria-invalid', 'true'); campo.focus(); mensaje(texto, 'error') }
+      if (!nombre) return invalido(campoNombre, 'Ponle nombre a tu juego.')
+      if (!url) return invalido(campoUrl, 'Escribe una URL válida (https://…).')
+      if (!autor) return invalido(campoAutor, 'Escribe el nombre del autor.')
+      const errEid = errorEnterpriseId(enterprise_id)
+      if (errEid) return invalido(campoEid, errEid)
+      const repetido = [...estado.apps.values()].find((a) => a.url === url)
+      if (repetido) return invalido(campoUrl, `Esa URL ya está registrada como “${repetido.nombre}”.`)
+
+      const btn = $('#btn-registrar')
+      btn.disabled = true
+      mensaje('Registrando…')
+      const { data, error } = await supabase.from('apps').insert({ nombre, url, icono, autor, enterprise_id }).select().single()
+      btn.disabled = false
+
+      if (error) {
+        console.error('Error al registrar juego', error)
+        const texto = error.code === '42501'
+          ? 'Supabase no permitió registrar el juego (revisa la política RLS de inserción en “apps”).'
+          : error.code === 'PGRST204' || error.code === '42703'
+            ? `Falta una columna en la tabla “apps” de Supabase: ${error.message}`
+            : `No se pudo registrar: ${error.message}`
+        return mensaje(texto, 'error')
+      }
+      if (data) { estado.apps.set(data.id, data); misRegistros.add(String(data.id)); renderTodo() }
+      formRegistro.reset()
+      inputIcono.value = '🎯'
+      marcarEmoji()
+      mensaje(`¡Listo! “${nombre}” ya está en la feria.`, 'ok')
+      setTimeout(() => { if (msgForm.classList.contains('ok')) mensaje('') }, 4000)
+    })
+
+    // ---------- juegos: liga con puntajes ----------
+    // Cada juego vive en su repo kermese-juego-<palabra> de GitHub Pages, así que su URL
+    // trae el nombre del repo (https://usuario.github.io/kermese-juego-xyz/). El juego guarda
+    // ese mismo nombre en puntajes.juego: la liga es por coincidencia exacta.
+    const RE_REPO = /^kermese-juego-[\w.-]+$/
+
+    function repoDe(url) {
+      try { return new URL(url).pathname.split('/').find((s) => RE_REPO.test(s)) ?? null } catch { return null }
+    }
+
+    let juegoPorRepo = new Map()
+
+    function reindexarJuegos() {
+      juegoPorRepo = new Map()
+      for (const app of estado.apps.values()) {
+        const repo = repoDe(app.url)
+        if (repo && !juegoPorRepo.has(repo)) juegoPorRepo.set(repo, app)
+      }
+    }
+
+    const appDePuntaje = (p) => juegoPorRepo.get(p.juego) ?? null
+
+    function infoJuego(p) {
+      const app = appDePuntaje(p)
+      if (app) return { nombre: app.nombre, icono: app.icono || '🎮' }
+      return { nombre: String(p.juego ?? '').trim() || 'Juego', icono: '🎮' }
+    }
+
+    function nodoIcono(icono) {
+      const v = String(icono ?? '').trim()
+      if (/^https?:\/\//i.test(v)) return h('img', { src: v, alt: '', loading: 'lazy' })
+      return h('span', { class: 'emoji', 'aria-hidden': 'true' }, v || '🎮')
+    }
+
+    // ---------- render: juegos ----------
+    const cartas = $('#cartas')
+    const nodosCarta = new Map()
+
+    function renderJuegos() {
+      const lista = [...estado.apps.values()].sort((a, b) =>
+        new Date(a.created_at) - new Date(b.created_at) || String(a.id).localeCompare(String(b.id), 'es', { numeric: true }))
+      const numero = new Map(lista.map((a, i) => [String(a.id), i + 1]))
+      lista.reverse() // los más nuevos primero
+
+      // mejor puntaje por juego
+      const records = new Map()
+      for (const p of estado.puntajes.values()) {
+        const app = appDePuntaje(p)
+        if (!app) continue
+        const k = String(app.id)
+        const pts = Number(p.puntaje) || 0
+        if (!records.has(k) || pts > records.get(k).pts) records.set(k, { pts, jugador: p.jugador })
+      }
+
+      const vivos = new Set()
+      lista.forEach((app, i) => {
+        const id = String(app.id)
+        vivos.add(id)
+        let nodo = nodosCarta.get(id)
+        if (!nodo) {
+          nodo = crearCarta(app)
+          nodosCarta.set(id, nodo)
+          if (estado.cargado.apps) nodo.el.classList.add('nueva')
+        }
+        actualizarCarta(nodo, app, numero.get(id), records.get(id))
+        if (cartas.children[i] !== nodo.el) cartas.insertBefore(nodo.el, cartas.children[i] ?? null)
+      })
+      for (const [id, nodo] of nodosCarta) {
+        if (!vivos.has(id)) { nodo.el.remove(); nodosCarta.delete(id) }
+      }
+
+      const vacio = $('#juegos-vacio')
+      vacio.hidden = lista.length > 0
+      $('#juegos-vacio-texto').textContent = estado.cargado.apps
+        ? 'Aún no hay juegos. ¡Registra el primero!'
+        : 'Cargando juegos…'
+    }
+
+    function crearCarta(app) {
+      const nodo = {}
+      nodo.numero = h('span', { class: 'numero' })
+      nodo.ilustracion = h('div', { class: 'ilustracion' })
+      nodo.nombre = h('h3', { class: 'nombre' })
+      nodo.autor = h('span', { class: 'autor' })
+      nodo.eid = h('span', { class: 'eid' })
+      nodo.autoria = h('p', { class: 'autoria' }, nodo.autor, nodo.eid)
+      nodo.record = h('p', { class: 'record' })
+      nodo.boton = h('button', { class: 'boton', type: 'button', onclick: () => jugar(nodo.app) },
+        '¡Jugar!', h('span', { 'aria-hidden': 'true' }, '▶'))
+      nodo.el = h('article', { class: 'carta' }, nodo.numero, nodo.ilustracion, nodo.nombre, nodo.autoria, nodo.record, nodo.boton)
+      nodo.el.addEventListener('animationend', () => nodo.el.classList.remove('nueva'), { once: true })
+      return nodo
+    }
+
+    function actualizarCarta(nodo, app, numero, record) {
+      nodo.app = app
+      nodo.el.style.setProperty('--c', colorDe(app.id))
+      nodo.numero.textContent = `N.º ${numero}`
+      const icono = String(app.icono ?? '')
+      if (nodo.icono !== icono) { nodo.ilustracion.replaceChildren(nodoIcono(icono)); nodo.icono = icono }
+      nodo.nombre.textContent = app.nombre || 'Sin nombre'
+      const autor = String(app.autor ?? '').trim()
+      const eid = String(app.enterprise_id ?? '').trim()
+      nodo.autor.textContent = autor ? `por ${autor}` : ''
+      nodo.autor.hidden = !autor
+      nodo.eid.textContent = eid
+      nodo.eid.hidden = !eid
+      nodo.autoria.hidden = !autor && !eid
+      nodo.record.textContent = record ? `🏆 ${fmtNum.format(record.pts)} · ${record.jugador ?? '¿?'}` : 'Sin récord todavía'
+      const jugable = esUrlJugable(app.url)
+      nodo.boton.disabled = !jugable
+      nodo.boton.title = jugable ? `Abrir ${app.url}` : 'URL no válida'
+      nodo.boton.setAttribute('aria-label', `Jugar ${app.nombre || 'juego'}`)
+
+      const reciente = Date.now() - new Date(app.created_at).getTime() < 10 * 60 * 1000
+      const tag = nodo.el.querySelector('.nuevo-tag')
+      if (reciente && !tag) nodo.el.append(h('span', { class: 'nuevo-tag' }, '¡Nuevo!'))
+      if (!reciente && tag) tag.remove()
+    }
+
+    // ---------- render: ranking ----------
+    let ultimoPuntaje = null
+
+    function renderRanking() {
+      const yo = normalizar(eidActual())
+      const lista = [...estado.puntajes.values()]
+
+      // Top 10
+      const top = lista
+        .slice()
+        .sort((a, b) => (Number(b.puntaje) || 0) - (Number(a.puntaje) || 0) || new Date(a.fecha) - new Date(b.fecha))
+        .slice(0, 10)
+
+      const medallas = ['🥇', '🥈', '🥉']
+      const clases = ['oro', 'plata', 'bronce']
+      $('#top10').replaceChildren(...top.map((p, i) => {
+        const juego = infoJuego(p)
+        const esMio = yo && normalizar(p.jugador) === yo
+        const cuando = haceCuanto(p.fecha)
+        const li = h('li', { class: [clases[i], esMio && 'mio', String(p.id) === ultimoPuntaje && 'flash'].filter(Boolean).join(' ') },
+          h('span', { class: `posicion ${i < 3 ? 'medalla' : ''}`, 'aria-label': `Lugar ${i + 1}` }, i < 3 ? medallas[i] : i + 1),
+          h('div', { class: 'quien' },
+            h('strong', {}, p.jugador || 'Anónimo', esMio && h('span', { class: 'tu' }, 'tú')),
+            h('span', {}, h('span', { class: 'emoji', 'aria-hidden': 'true', style: 'display:inline' }, /^https?:/i.test(juego.icono) ? '🎮' : juego.icono),
+              ' ', juego.nombre, cuando && ` · ${cuando}`)),
+          h('span', { class: 'puntos' }, fmtNum.format(Number(p.puntaje) || 0), h('small', {}, 'pts')))
+        return li
+      }))
+      $('#top-vacio').hidden = top.length > 0
+      $('#top-vacio-texto').textContent = estado.cargado.puntajes
+        ? 'Nadie ha jugado todavía. ¡Sé el primero!'
+        : 'Cargando puntajes…'
+
+      // Total acumulado por jugador
+      const totales = new Map()
+      for (const p of lista) {
+        const k = normalizar(p.jugador) || '(anónimo)'
+        const t = totales.get(k) ?? { nombre: p.jugador || 'Anónimo', total: 0, partidas: 0, ultima: 0 }
+        t.total += Number(p.puntaje) || 0
+        t.partidas += 1
+        const f = new Date(p.fecha).getTime() || 0
+        if (f >= t.ultima) { t.ultima = f; t.nombre = String(p.jugador ?? '').trim() || 'Anónimo' }
+        totales.set(k, t)
+      }
+      const filas = [...totales.entries()].sort((a, b) => b[1].total - a[1].total || a[1].nombre.localeCompare(b[1].nombre, 'es'))
+      const maximo = Math.max(1, ...filas.map(([, t]) => t.total))
+      const ol = $('#totales')
+      ol.replaceChildren(...filas.map(([k, t], i) => {
+        const barra = h('i', {})
+        const li = h('li', {},
+          h('div', { class: 'linea' },
+            h('span', { class: 'lugar' }, `${i + 1}.`),
+            h('span', { class: 'jugador' }, t.nombre, ' ', yo && k === yo && h('span', { class: 'tu' }, 'tú'),
+              ' ', h('small', {}, `(${plural(t.partidas, 'partida', 'partidas')})`)),
+            h('span', { class: 'puntos' }, fmtNum.format(t.total), h('small', {}, 'pts'))),
+          h('div', { class: 'barra', 'aria-hidden': 'true' }, barra))
+        requestAnimationFrame(() => { barra.style.width = `${Math.max(2, (Math.max(0, t.total) / maximo) * 100)}%` })
+        return li
+      }))
+      $('#totales-vacio').hidden = filas.length > 0 || !estado.cargado.puntajes
+
+      $('#cuenta-partidas').textContent = plural(lista.length, 'partida', 'partidas')
+      $('#cuenta-jugadores').textContent = plural(filas.length, 'jugador', 'jugadores')
+    }
+
+    function renderTodo() {
+      reindexarJuegos()
+      renderJuegos()
+      renderRanking()
+      $('#cuenta-juegos').textContent = plural(estado.apps.size, 'juego', 'juegos')
+    }
+
+    // ---------- datos ----------
+    const cargando = { apps: false, puntajes: false }
+    const enCola = { apps: [], puntajes: [] }
+
+    // El ranking solo cuenta puntajes oficiales.
+    const esOficial = (p) => p?.oficial === true
+
+    function consulta(tabla) {
+      const q = supabase.from(tabla).select('*')
+      return tabla === 'puntajes' ? q.eq('oficial', true).order('id', { ascending: true }) : q.order('created_at', { ascending: true })
+    }
+
+    async function traerTodo(tabla) {
+      const filas = []
+      const PAGINA = 1000
+      for (let desde = 0; ; desde += PAGINA) {
+        const { data, error } = await consulta(tabla).range(desde, desde + PAGINA - 1)
+        if (error) throw error
+        filas.push(...data)
+        if (data.length < PAGINA) return filas
+      }
+    }
+
+    async function cargar(tabla) {
+      if (cargando[tabla]) return
+      cargando[tabla] = true
+      enCola[tabla] = []
+      try {
+        const filas = await traerTodo(tabla)
+        estado[tabla] = new Map(filas.map((f) => [f.id, f]))
+        // cambios en vivo que llegaron mientras se descargaba
+        for (const cambio of enCola[tabla]) aplicarCambio(tabla, cambio)
+        estado.cargado[tabla] = true
+      } catch (error) {
+        console.error(`Error al cargar ${tabla}`, error)
+        avisar(`No se pudo cargar “${tabla}”: ${error.message}`, 'error')
+      } finally {
+        cargando[tabla] = false
+        enCola[tabla] = []
+        renderTodo()
+      }
+    }
+
+    function aplicarCambio(tabla, payload) {
+      const mapa = estado[tabla]
+      if (payload.eventType === 'DELETE') {
+        const id = payload.old?.id
+        if (id != null) mapa.delete(id)
+      } else if (payload.new?.id != null) {
+        // Un puntaje que deja de ser oficial (o nunca lo fue) sale del ranking.
+        if (tabla === 'puntajes' && !esOficial(payload.new)) mapa.delete(payload.new.id)
+        else mapa.set(payload.new.id, payload.new)
+      }
+    }
+
+    function alCambiar(tabla, payload) {
+      if (cargando[tabla]) enCola[tabla].push(payload)
+      aplicarCambio(tabla, payload)
+
+      if (payload.eventType === 'INSERT' && estado.cargado[tabla]) {
+        const fila = payload.new
+        if (tabla === 'puntajes' && esOficial(fila)) {
+          ultimoPuntaje = String(fila.id)
+          reindexarJuegos()
+          const juego = infoJuego(fila)
+          const pts = fmtNum.format(Number(fila.puntaje) || 0)
+          const esMio = normalizar(fila.jugador) && normalizar(fila.jugador) === normalizar(eidActual())
+          avisar(esMio
+            ? `🎉 ¡Bien! Hiciste ${pts} pts en ${juego.nombre}`
+            : `🎯 ${fila.jugador || 'Alguien'} hizo ${pts} pts en ${juego.nombre}`, 'fiesta')
+        } else if (tabla === 'apps' && !misRegistros.has(String(fila.id))) {
+          avisar(`🎪 Nuevo juego en la feria: ${fila.nombre}`)
+        }
+      }
+      renderTodo()
+      ultimoPuntaje = null
+    }
+
+    // ---------- en vivo ----------
+    function ponerEstado(clave, texto) {
+      const chip = $('#estado-vivo')
+      chip.dataset.estado = clave
+      chip.querySelector('.texto').textContent = texto
+    }
+
+    let yaConectado = false
+    supabase
+      .channel('kermese-consola')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'apps' }, (p) => alCambiar('apps', p))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'puntajes' }, (p) => alCambiar('puntajes', p))
+      .subscribe((status, err) => {
+        if (status === 'SUBSCRIBED') {
+          ponerEstado('vivo', 'En vivo')
+          // Al reconectar, volvemos a descargar para no perder cambios.
+          if (yaConectado) { cargar('apps'); cargar('puntajes') }
+          yaConectado = true
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          console.error('Realtime', status, err)
+          ponerEstado('error', 'Reconectando…')
+        } else if (status === 'CLOSED') {
+          ponerEstado('error', 'Sin conexión en vivo')
+        }
+      })
+
+    // ---------- arranque ----------
+    colgarPapelPicado()
+    renderTodo()
+    cargar('apps')
+    cargar('puntajes')
+    setInterval(renderRanking, 60_000) // refresca los "hace X min"
+  </script>
+</body>
+</html>
